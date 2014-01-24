@@ -1,0 +1,5 @@
+LEVEL	8.0
+NAME	Purple Passion
+COMPOSER	Diana Boncheva
+PATTERNER	TigerHix
+DESCRIPTION	From album Beethoven Virus. Fast-paced violin music.

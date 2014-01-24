@@ -1,0 +1,5 @@
+LEVEL	9.5
+NAME	Blue Eyes
+COMPOSER	Persona
+PATTERNER	Rayark Inc.
+DESCRIPTION	From Chapter LIVE of Cytus.

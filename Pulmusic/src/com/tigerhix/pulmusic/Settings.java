@@ -1,5 +1,7 @@
 package com.tigerhix.pulmusic;
 
+import java.text.DecimalFormat;
+
 import com.badlogic.gdx.Gdx;
 
 public class Settings {
@@ -13,7 +15,9 @@ public class Settings {
 	public static float CHAIN_SIZE;
 	
 	public static boolean SHOW_SCANNER = true;
-	public static double BEATMAP_DELAY = 0.08;
+	public static double BEATMAP_DELAY = 0;
+	public static DecimalFormat SCORE_FORMATTER = new DecimalFormat("######");
+	public static DecimalFormat ACCURACY_FORMATTER = new DecimalFormat("#.##");
 	
 	public Settings() {
 		NOTEAREA_HEIGHT = Gdx.graphics.getHeight() / 1 * 0.8;

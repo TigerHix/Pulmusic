@@ -8,10 +8,11 @@ import com.tigerhix.pulmusic.Pulmusic;
 import com.tigerhix.pulmusic.Settings;
 import com.tigerhix.pulmusic.enums.Rank;
 import com.tigerhix.pulmusic.enums.Type;
+import com.tigerhix.pulmusic.screens.MatchScreen;
 
 public class Note extends Actor {
 	
-	private Beatmap beatmap;
+	private Pattern pattern;
 	
 	// Stored data
 	
@@ -38,19 +39,19 @@ public class Note extends Actor {
 	private Sprite noteSprite;
 	private Sprite shadowSprite;
 	
-	public Note(Beatmap beatmap, int id, float time, float x) {
+	public Note(Pattern pattern, int id, float time, float x) {
 		super();
-		this.beatmap = beatmap;
+		this.pattern = pattern;
 		this.id = id;
 		this.time = time;
 		// Calculate the position, row of the note
-		row = (int) ((time + beatmap.getOffset()) / beatmap.getSpeed()); // Row
+		row = (int) ((time + pattern.getOffset()) / pattern.getSpeed()); // Row
 		this.x = (float) (x * Settings.NOTEAREA_WIDTH);
 		this.x += Settings.NOTEAREA_HORIZONTAL_MARGIN;
 		if (row % 2 == 0) { // Up to down
-			this.y = (float) (Settings.NOTEAREA_HEIGHT - Settings.NOTEAREA_HEIGHT * ((time + beatmap.getOffset()) % beatmap.getSpeed() / beatmap.getSpeed()));
+			this.y = (float) (Settings.NOTEAREA_HEIGHT - Settings.NOTEAREA_HEIGHT * ((time + pattern.getOffset()) % pattern.getSpeed() / pattern.getSpeed()));
         } else { // Down to up
-        	this.y = (float) (Settings.NOTEAREA_HEIGHT * ((time + beatmap.getOffset()) % beatmap.getSpeed() / beatmap.getSpeed()));
+        	this.y = (float) (Settings.NOTEAREA_HEIGHT * ((time + pattern.getOffset()) % pattern.getSpeed() / pattern.getSpeed()));
         } 
 		this.y += Settings.NOTEAREA_VERTICAL_MARGIN; // Position
 		// Now setup the actor & sprite
@@ -63,11 +64,11 @@ public class Note extends Actor {
 	@Override
 	public void draw(SpriteBatch batch, float parentAlpha) {
 		super.draw(batch, parentAlpha);
-		double timeDifference = this.getTime() - beatmap.getMatchScreen().getTotalTime();
+		double timeDifference = this.getTime() - pattern.getMatchScreen().getTotalTime();
 		// Enlarging effect
 		float newSize = type == Type.SINGLE
-				? (float) (size - timeDifference / beatmap.getSpeed() * (size / 4))
-				: (float) (size - timeDifference / beatmap.getSpeed() * (size / 8));
+				? (float) (size - timeDifference / pattern.getSpeed() * (size / 4))
+				: (float) (size - timeDifference / pattern.getSpeed() * (size / 8));
 		if (newSize > size) newSize = size; // Otherwise the note will be enlarging infinitely..
 		// Flashing effect
 		if (timeDifference <= 0.05 && timeDifference > -0.25) {
@@ -78,6 +79,11 @@ public class Note extends Actor {
 			shadowSprite.draw(batch, alpha);
 		}		
 		if (removed) return;
+		pattern.getMatchScreen();
+		// Debug
+		if (MatchScreen.debug && Math.abs(timeDifference) < 0.05) {
+			touchNote();
+		}
 		// If not removed, check can it be removed
 		if (!removed && timeDifference < -0.3) {
 			removeNote(Rank.MISS);
@@ -95,22 +101,22 @@ public class Note extends Actor {
 	
 	public void touchNote() {
 		touched = true;
-		double timing = Math.abs(this.getTime() - beatmap.getMatchScreen().getTotalTime());
+		double timing = Math.abs(this.getTime() - pattern.getMatchScreen().getTotalTime());
 		Rank rank = Rank.MISS;
 		if (type == Type.SINGLE) { 
 			if (timing >= 0.81) {
 				rank = Rank.MISS;
 			} else if (timing >= 0.31) {
 				rank = Rank.BAD;
-			} else if (timing >= 0.16) {
+			} else if (timing >= 0.21) {
 				rank = Rank.GOOD;
-			} else if (timing >= 0.06) {
+			} else if (timing >= 0.11) {
 				rank = Rank.EXCELLENT;
 			} else {
 				rank = Rank.PERFECT;
 			}
 		} else if (type == Type.CHAIN) {
-			if (timing >= 0.51 && this.getTime() - beatmap.getMatchScreen().getTotalTime() < 0) {
+			if (timing >= 0.51 && this.getTime() - pattern.getMatchScreen().getTotalTime() < 0) {
 				rank = Rank.MISS;
 			} else if (timing >= 0.16) {
 				rank = Rank.EXCELLENT;
@@ -123,10 +129,10 @@ public class Note extends Actor {
 	
 	public void removeNote(Rank rank) {
 		removed = true;
-		if (id == beatmap.getNotes().size() - 1) { // Last note
-			beatmap.getMatchScreen().end();
+		if (id == pattern.getNotes().size() - 1) { // Last note
+			pattern.getMatchScreen().end();
 		}
-		beatmap.getMatchScreen().getScoreCounter().add(rank);
+		pattern.getMatchScreen().getScoreCounter().add(rank);
 		new RankShower(this, rank);
 	}
 	

@@ -1,0 +1,5 @@
+LEVEL	10.0
+NAME	L2A ~Loneliness~
+COMPOSER	ICE
+PATTERNER	Rayark Inc.
+DESCRIPTION	From Chapter VII of Cytus.

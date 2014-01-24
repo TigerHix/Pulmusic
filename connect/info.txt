@@ -1,0 +1,5 @@
+NAME	Connect
+LEVEL	8.0
+COMPOSER	ClariS
+PATTERNER	cai_lw
+DESCRIPTION	The OP of "Puella Magi Madoka Magica".

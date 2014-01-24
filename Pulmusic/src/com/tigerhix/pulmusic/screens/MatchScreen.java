@@ -4,7 +4,6 @@ import static com.badlogic.gdx.scenes.scene2d.actions.Actions.fadeOut;
 import static com.badlogic.gdx.scenes.scene2d.actions.Actions.run;
 import static com.badlogic.gdx.scenes.scene2d.actions.Actions.sequence;
 
-import java.io.File;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -12,13 +11,13 @@ import java.util.Timer;
 import java.util.TimerTask;
 
 import com.badlogic.gdx.Gdx;
+import com.badlogic.gdx.Application.ApplicationType;
 import com.badlogic.gdx.assets.AssetManager;
 import com.badlogic.gdx.audio.Music;
 import com.badlogic.gdx.audio.Music.OnCompletionListener;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.GL10;
 import com.badlogic.gdx.graphics.Texture;
-import com.badlogic.gdx.graphics.Texture.TextureFilter;
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer.ShapeType;
@@ -38,20 +37,23 @@ import com.tigerhix.pulmusic.model.AbstractScreen;
 import com.tigerhix.pulmusic.model.Beatmap;
 import com.tigerhix.pulmusic.model.Chain;
 import com.tigerhix.pulmusic.model.Note;
+import com.tigerhix.pulmusic.model.Pattern;
 import com.tigerhix.pulmusic.model.ScoreCounter;
 
 public class MatchScreen extends AbstractScreen {
 	
+	public static boolean debug = false;
+	
 	private Pulmusic game;
 	private AssetManager manager;
-	
-	private String path;
 	
 	private int progress; // 0 = resources, 1 = notes, 2 = loaded
 	private long startTimeMillis;
 	
 	private static Stage stage;
 	private Beatmap beatmap;
+	private Pattern pattern;
+	private Music music;
 	private Image scanner;
 	private Label info;
 	
@@ -61,26 +63,18 @@ public class MatchScreen extends AbstractScreen {
 	
 	private ScoreCounter counter;
 	
-	public MatchScreen(Pulmusic game, String path) {
+	int i;
+	
+	public MatchScreen(Pulmusic game, Beatmap beatmap) {
 		super(game);
 		this.game = game;
-		this.path = path;
+		this.beatmap = beatmap;
+		this.music = Gdx.audio.newMusic(beatmap.getMusicFileHandle());
 		// Initialize
 		stage = new Stage(Gdx.graphics.getWidth(), Gdx.graphics.getHeight(), true);
 		Gdx.input.setInputProcessor(stage);
-		// Load UI resources
 		manager = Pulmusic.getManager();
-		manager.load("ui/scanner.png", Texture.class);
-		manager.load("ui/noteUp.png", Texture.class);
-		manager.load("ui/noteDown.png", Texture.class);
-		manager.load("ui/chainUp.png", Texture.class);
-		manager.load("ui/chainDown.png", Texture.class);
-		manager.load("ui/shadow.png", Texture.class);
-		manager.load("ui/perfect.png", Texture.class);
-		manager.load("ui/excellent.png", Texture.class);
-		manager.load("ui/good.png", Texture.class);
-		manager.load("ui/bad.png", Texture.class);
-		manager.load("ui/miss.png", Texture.class);
+		if (Gdx.app.getType() == ApplicationType.Desktop) MatchScreen.debug = true;
 		// Add listener
 		stage.addListener(new TouchListener());
 	}
@@ -89,7 +83,7 @@ public class MatchScreen extends AbstractScreen {
 		@Override
 		public boolean touchDown(InputEvent event, float x, float y, int pointer, int button) {
 			List<Note> inRange = new ArrayList<Note>();
-            for (Note note : beatmap.getNotes()) {
+            for (Note note : pattern.getNotes()) {
             	if (note.isShown() && !note.isTouched() && !note.isRemoved()) {
             		if (Utils.difference(x, note.getX()) < Settings.NOTE_SIZE / 1.5 && Utils.difference(y, note.getY()) < Settings.NOTE_SIZE / 1.5) {
             			inRange.add(note);
@@ -113,7 +107,7 @@ public class MatchScreen extends AbstractScreen {
 		@Override
 		public void touchDragged (InputEvent event, float x, float y, int pointer) {
 			List<Note> inRange = new ArrayList<Note>();
-            for (Note note : beatmap.getNotes()) {
+            for (Note note : pattern.getNotes()) {
             	if (note.getType() == Type.CHAIN && note.isShown() && !note.isTouched() && !note.isRemoved()) {
             		if (Utils.difference(x, note.getX()) < Settings.NOTE_SIZE / 2.5 && Utils.difference(y, note.getY()) < Settings.NOTE_SIZE / 2.5) {
             			inRange.add(note);
@@ -137,32 +131,17 @@ public class MatchScreen extends AbstractScreen {
 		Gdx.gl.glClearColor(1, 1, 1, 1);
         Gdx.gl.glClear(GL10.GL_COLOR_BUFFER_BIT);
         if (progress == 0) {
-        	if (manager.update()) {
-    			progress ++;
-    			manager.get("ui/scanner.png", Texture.class).setFilter(TextureFilter.Linear, TextureFilter.Linear);
-    			manager.get("ui/noteUp.png", Texture.class).setFilter(TextureFilter.Linear, TextureFilter.Linear);
-    			manager.get("ui/noteDown.png", Texture.class).setFilter(TextureFilter.Linear, TextureFilter.Linear);
-    			manager.get("ui/chainUp.png", Texture.class).setFilter(TextureFilter.Linear, TextureFilter.Linear);
-    			manager.get("ui/chainDown.png", Texture.class).setFilter(TextureFilter.Linear, TextureFilter.Linear);
-    			manager.get("ui/shadow.png", Texture.class).setFilter(TextureFilter.Linear, TextureFilter.Linear); 
-    			manager.get("ui/perfect.png", Texture.class).setFilter(TextureFilter.Linear, TextureFilter.Linear);
-    			manager.get("ui/excellent.png", Texture.class).setFilter(TextureFilter.Linear, TextureFilter.Linear);
-    			manager.get("ui/good.png", Texture.class).setFilter(TextureFilter.Linear, TextureFilter.Linear);
-    			manager.get("ui/bad.png", Texture.class).setFilter(TextureFilter.Linear, TextureFilter.Linear); 
-    			manager.get("ui/miss.png", Texture.class).setFilter(TextureFilter.Linear, TextureFilter.Linear); // Set filters
-    	    } else {
-    	    	float progress = manager.getProgress();
-    			Gdx.app.log("", "Loading resources: " + progress);
-    	    }
+        	progress ++;
         } else if (progress == 1){
-        	// Load beatmap
-    		beatmap = new Beatmap(this, Gdx.files.internal("data" + File.separator + path));	 
+        	// Initialize pattern
+    		pattern = new Pattern(beatmap.getPatternLines());
+    		pattern.setMatchScreen(this);
     		// Setup counter
-    		counter = new ScoreCounter(beatmap);
+    		counter = new ScoreCounter(pattern);
     		progress ++;
         } else if (progress == 2) {
     		setupStage();
-    		List<Note> notes = new ArrayList<Note>(beatmap.getNotes());
+    		List<Note> notes = new ArrayList<Note>(pattern.getNotes());
     		Collections.reverse(notes);
     		for (Note note : notes) {			
     			note.setPosition(note.getX(), note.getY());
@@ -188,27 +167,32 @@ public class MatchScreen extends AbstractScreen {
             stage.draw();
             // Update variables
             totalTime = (double) (System.currentTimeMillis() - startTimeMillis) / 1000;
-            totalRow = (int) ((totalTime + beatmap.getOffset()) / beatmap.getSpeed());
+            totalRow = (int) ((totalTime + pattern.getOffset()) / pattern.getSpeed());
             // Update info label
-            info.setText("FPS: " + Gdx.graphics.getFramesPerSecond());
+            info.setText("FPS: " + Gdx.graphics.getFramesPerSecond()
+            		+ "\nSCORE: " + Settings.SCORE_FORMATTER.format(counter.getScore())
+            		+ "\nACCURACY: " + Settings.ACCURACY_FORMATTER.format(counter.getAccuracy())
+            		+ "\nCOMBO: " + counter.getCombo()
+            		+ "\nMAX COMBO: " + counter.getMaxCombo());
             info.setX(stage.getWidth() - info.getTextBounds().width);
+            info.setY(stage.getHeight() - info.getTextBounds().height);
             // Update scanner
             if (Settings.SHOW_SCANNER) { 
                 scanner.setZIndex(Integer.MAX_VALUE); // Make sure the scanner overlays notes   
                 float y;
                 if (totalRow % 2 == 0) { // Up to down
-        			y = (float) (Settings.NOTEAREA_HEIGHT - Settings.NOTEAREA_HEIGHT * ((totalTime + beatmap.getOffset()) % beatmap.getSpeed() / beatmap.getSpeed()));
+        			y = (float) (Settings.NOTEAREA_HEIGHT - Settings.NOTEAREA_HEIGHT * ((totalTime + pattern.getOffset()) % pattern.getSpeed() / pattern.getSpeed()));
                 } else { // Down to up
-                	y = (float) (Settings.NOTEAREA_HEIGHT * ((totalTime + beatmap.getOffset()) % beatmap.getSpeed() / beatmap.getSpeed()));
+                	y = (float) (Settings.NOTEAREA_HEIGHT * ((totalTime + pattern.getOffset()) % pattern.getSpeed() / pattern.getSpeed()));
                 } 
                 y -= scanner.getHeight() / 2;
                 y += Settings.NOTEAREA_VERTICAL_MARGIN;
                 scanner.setY(y);
             }
             // Update notes
-            for (Note note : beatmap.getNotes()) {
+            for (Note note : pattern.getNotes()) {
         		float timeDifference = (float) (note.getTime() - totalTime);
-        		if (timeDifference >= 0 && timeDifference <= beatmap.getSpeed()) {
+        		if (timeDifference >= 0 && timeDifference <= pattern.getSpeed()) {
         			if (!note.isShown()) {
         				note.showNote();
         			}
@@ -217,10 +201,10 @@ public class MatchScreen extends AbstractScreen {
             // Update lines of chains
             ShapeRenderer shapeRenderer = new ShapeRenderer();
             Gdx.gl.glLineWidth(5);
-            for (Chain chain : beatmap.getChains()) {
+            for (Chain chain : pattern.getChains()) {
             	shapeRenderer.begin(ShapeType.Line);
             	for (int i = 0; i < chain.getNotes().size() - 1; i++) {
-            		if (!chain.getNotes().get(i).isShown() || chain.getNotes().get(i).getRow() - totalRow < 0 || totalTime - chain.getNotes().get(i).getTime() >= beatmap.getSpeed() / 5) continue;
+            		if (!chain.getNotes().get(i).isShown() || chain.getNotes().get(i).getRow() - totalRow < 0 || totalTime - chain.getNotes().get(i).getTime() >= pattern.getSpeed() / 5) continue;
             		shapeRenderer.setColor(Color.DARK_GRAY);
             		shapeRenderer.line(chain.getNotes().get(i).getX(), chain.getNotes().get(i).getY(), 
                         		chain.getNotes().get(i + 1).getX(), chain.getNotes().get(i + 1).getY());
@@ -233,10 +217,28 @@ public class MatchScreen extends AbstractScreen {
             stage.draw();
             // Update variables
             totalTime = (double) (System.currentTimeMillis() - startTimeMillis) / 1000;
-            totalRow = (int) ((totalTime + beatmap.getOffset()) / beatmap.getSpeed());
+            totalRow = (int) ((totalTime + pattern.getOffset()) / pattern.getSpeed());
             // Update info label
-            info.setText("FPS: " + Gdx.graphics.getFramesPerSecond());
+            info.setText("FPS: " + Gdx.graphics.getFramesPerSecond()
+            		+ "\nSCORE: " + Settings.SCORE_FORMATTER.format(counter.getScore())
+            		+ "\nACCURACY: " + Settings.ACCURACY_FORMATTER.format(counter.getAccuracy())
+            		+ "\nCOMBO: " + counter.getCombo()
+            		+ "\nMAX COMBO: " + counter.getMaxCombo());
             info.setX(stage.getWidth() - info.getTextBounds().width);
+            info.setY(stage.getHeight() - info.getTextBounds().height);
+            // Update lines of chains
+            ShapeRenderer shapeRenderer = new ShapeRenderer();
+            Gdx.gl.glLineWidth(5);
+            for (Chain chain : pattern.getChains()) {
+            	shapeRenderer.begin(ShapeType.Line);
+            	for (int i = 0; i < chain.getNotes().size() - 1; i++) {
+            		if (!chain.getNotes().get(i).isShown() || chain.getNotes().get(i).getRow() - totalRow < 0 || totalTime - chain.getNotes().get(i).getTime() >= pattern.getSpeed() / 5) continue;
+            		shapeRenderer.setColor(Color.DARK_GRAY);
+            		shapeRenderer.line(chain.getNotes().get(i).getX(), chain.getNotes().get(i).getY(), 
+                        		chain.getNotes().get(i + 1).getX(), chain.getNotes().get(i + 1).getY());
+            	}
+            	shapeRenderer.end();
+            }
         }
 	}
 	
@@ -302,7 +304,6 @@ public class MatchScreen extends AbstractScreen {
 	}
 	
 	public void play() {
-		Music music = beatmap.getMusic();
 		music.play();
 	}
 	
@@ -311,7 +312,6 @@ public class MatchScreen extends AbstractScreen {
 	}
 	
 	public void end() {
-		Music music = beatmap.getMusic();
 		progress ++;
 		scanner.addAction(sequence(fadeOut(0.5f, Interpolation.linear), run(new Runnable() {
 			public void run () {
@@ -331,12 +331,13 @@ public class MatchScreen extends AbstractScreen {
 	}
 	
 	public void result() {
-		Music music = beatmap.getMusic();
+		music.stop();
 		music.dispose();
 		new Timer().schedule(new TimerTask() {          
     	    @Override
     	    public void run() {
-    	    	game.endMatch(counter);
+    	    	progress ++;
+    	    	game.resultMatch(counter);
     	    }
     	}, 3000);
 	}

@@ -3,30 +3,29 @@ package com.tigerhix.pulmusic.model;
 import com.tigerhix.pulmusic.enums.Rank;
 
 public class ScoreCounter {
+
+	private int total;
 	
-	private Beatmap beatmap;
-	
-	private int score;
+	private double score;
 	private double accuracy;
 	private int combo;
 	private int maxCombo;
 	
-	private int notes;
 	private int perfect;
 	private int excellent;
 	private int good;
 	private int bad;
 	private int miss;
 	
-	public ScoreCounter(Beatmap beatmap) {
-		this.beatmap = beatmap;
+	public ScoreCounter(Pattern pattern) {
+		total = pattern.getNotes().size();
 	}
 	
-	public int getScore() {
+	public double getScore() {
 		return score;
 	}
 	
-	public void setScore(int score) {
+	public void setScore(double score) {
 		this.score = score;
 	}
 	
@@ -55,7 +54,6 @@ public class ScoreCounter {
 	}
 
 	public void add(Rank rank) {
-		notes ++;
 		switch (rank) {
 		case PERFECT:
 			perfect ++;
@@ -83,6 +81,11 @@ public class ScoreCounter {
 		default:
 			break;
 		}
+		score += (900000f / total * 1f) + (100000f / (total * (total - 1) / 2f) * (combo - 1));
+		if (score >= 999995) {
+			score = 1000000;
+		}
+		accuracy += 100f / total * rank.getAccuracyScale();
 	}
 	
 	public int getPerfect() {

@@ -10,7 +10,12 @@ public class Main {
 		cfg.useGL20 = false;
 		cfg.width = 1280;
 		cfg.height = 800;
-		
+		cfg.fullscreen = false;  
+		cfg.useGL20 = false;
+		cfg.foregroundFPS = 0;
+		cfg.backgroundFPS = 0;
+		cfg.forceExit = true;  
+		cfg.vSyncEnabled = false;
 		new LwjglApplication(new Pulmusic(), cfg);
 	}
 }

@@ -1,0 +1,5 @@
+LEVEL	9.0
+NAME	Megaera
+COMPOSER	switchworks
+PATTERNER	Rayark Inc.
+DESCRIPTION	From Chapter LIVE of Cytus.
